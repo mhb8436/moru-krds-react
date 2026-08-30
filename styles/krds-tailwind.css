@@ -1,0 +1,335 @@
+/*
+ * Tailwind 눈금 ↔ KRDS 토큰 다리.
+ *
+ * 이 파일이 하는 일은 하나다 — **Tailwind 의 유틸리티 이름을 KRDS 변수에 묶는 것.**
+ * 이 결합이 없으면 `text-fg-subtle`·`bg-primary-solid`·`border-line` 같은 이름이 아무 뜻도 없고,
+ * 유틸리티로 그린 부분이 KRDS 컴포넌트 옆에서 따로 논다.
+ *
+ * 부품(`src/`)은 이 이름들을 쓴다. **Tailwind v4 를 쓴다면 이 파일을 반드시 들여와야 한다.**
+ * Tailwind 를 안 쓴다면 부품이 붙이는 유틸리티 클래스가 무시될 뿐 킷 클래스는 그대로 동작한다 —
+ * 다만 여백·색 보충이 빠져 화면이 성기게 보인다.
+ *
+ * 규칙 셋
+ *  1. KRDS 에 컴포넌트가 있으면 무조건 그것을 쓴다(`src/` 의 부품이 그 껍데기다).
+ *  2. 보충은 **유틸리티로만** 한다. 이름 붙인 새 클래스를 만들지 않는다.
+ *  3. **눈금은 KRDS 토큰에서 온다** — 아래 @theme 이 그 결합이다. 없는 값을 지어내지 않는다.
+ *
+ * 전제: 킷이 `html { font-size: 62.5% }` 를 걸어 **1rem = 10px** 이다.
+ *       누가 이 값을 바꾸면 아래 모든 rem 이 어긋난다.
+ */
+
+@layer krds-theme;
+
+@import 'tailwindcss/theme.css' layer(krds-theme);
+
+/*
+ * 유틸리티는 **레이어에 넣지 않고, important 로 들여온다.** 두 가지를 실측하고 내린 결정이다.
+ *
+ *  1) 캐스케이드 레이어는 레이어 밖 규칙에 무조건 진다. krds.min.css 가 레이어 밖이라
+ *     layer(utilities) 로 넣으면 `text-sm`·`h-13` 이 하나도 먹지 않는다(실제로 화면이 통째로 깨졌다).
+ *  2) 그렇다고 순서로 이기지도 못한다. 실측한 <head> 적재 순서는
+ *        globals(+tailwind).css → krds.min.css
+ *     로 킷이 맨 뒤다. 게다가 킷 규칙은 `.krds-table-wrap .tbl.data tbody td`(0,3,1)처럼 특이도도 높다.
+ *
+ * 보충 층은 「KRDS 위에 덮는 층」이 설계 의도이므로 important 가 맞다.
+ * preflight 는 넣지 않는다 — 기반 층의 주인은 KRDS 다.
+ */
+@import 'tailwindcss/utilities.css' important;
+
+@source './';
+@source '../src/';
+
+@theme {
+  /* ── 간격 ───────────────────────────────────────────────────────────
+   * `--spacing` 만 두고 눈금 별칭(--spacing-1 … -21)은 두지 않는다.
+   *
+   * 한때 `--spacing-N` 을 `--krds-number-N` 에 묶었는데 틀린 결합이었다.
+   * `--krds-number-*` 는 배수가 아니라 **인덱스**다 — number-4 = 6px, number-8 = 16px.
+   * 그래서 `p-4` 가 6px, `gap-2` 가 2px 이 되어 Tailwind 를 아는 사람이 읽는 대로 동작하지 않았고,
+   * 21 에서 정의가 끊겨 `p-22` 가 `p-21`(96px)보다 작은 88px 로 역주행했다.
+   *
+   * KRDS 가 컴포넌트에 실제로 쓰는 눈금은 `--krds-gap-*` 와 `--krds-padding-*` 이고 값은 이렇다.
+   *   gap     2 · 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 · 64 · 80
+   *   padding 2 · 4 · 8 · 10 · 12 · 16 · 20 · 24 · 32 · 40
+   * 2 와 10 을 빼면 전부 4 의 배수다. 그래서 눈금을 4px 로 두면 KRDS 값이 전부 표현되고
+   * (2px = `0.5`, 10px = `2.5`) 끊기는 지점도 없다.
+   */
+  --spacing: 0.4rem; /* 4px */
+
+  /* ── 본문 폭 ─────────────────────────────────────────────────────
+   * KRDS: 콘텐츠 1200 · 바깥 감싸개 1248 · 좌우 여백 16.
+   * Tailwind 의 `max-w-7xl`(80rem)은 루트 10px 을 타서 800px 이 되므로 쓰면 안 된다. */
+  --container-contents: 1200px;
+  --container-contents-wrap: 1248px;
+
+  /* ── 글자 크기 ───────────────────────────────────────────────────
+   * KRDS 는 축을 넷으로 가른다 — display / heading / body / label.
+   * 예전에는 `--text-lg`(body-large 19px)와 `--text-xl`(heading-small 19px)이 같은 값으로 겹쳐
+   * 「본문 큰 글씨」와 「작은 제목」이 구분되지 않았다. 이제 축마다 이름을 따로 준다.
+   *
+   * Tailwind 기본 별칭(xs·sm·base·lg)은 **body 축**에 그대로 둔다 — 이미 쓰는 곳이 많다.
+   * 제목에는 `text-heading-*` 을, 큰 표제에는 `text-display-*` 를 쓴다.
+   *
+   * 줄간격은 전부 `--krds-line-height-base`(1.5)다. 킷이 body 에 걸어 두는 유일한 값이고
+   * KRDS 가 요구하는 최소치이기도 하다. Tailwind 기본값(크기마다 다르고 큰 글자는 1.1까지 내려감)을
+   * 그대로 두면 이 요구를 어긴다 — 그래서 크기마다 짝을 명시한다. */
+
+  /* 본문 — 13 / 15 / 17 / 19 */
+  --text-xs: var(--krds-pc-font-size-body-xsmall);
+  --text-xs--line-height: var(--krds-line-height-base);
+  --text-sm: var(--krds-pc-font-size-body-small);
+  --text-sm--line-height: var(--krds-line-height-base);
+  --text-base: var(--krds-pc-font-size-body-medium);
+  --text-base--line-height: var(--krds-line-height-base);
+  --text-lg: var(--krds-pc-font-size-body-large);
+  --text-lg--line-height: var(--krds-line-height-base);
+
+  /* 제목 — 15 / 17 / 19 / 24 / 32 / 40 */
+  --text-heading-xxs: var(--krds-pc-font-size-heading-xxsmall);
+  --text-heading-xxs--line-height: var(--krds-line-height-base);
+  --text-heading-xs: var(--krds-pc-font-size-heading-xsmall);
+  --text-heading-xs--line-height: var(--krds-line-height-base);
+  --text-heading-sm: var(--krds-pc-font-size-heading-small);
+  --text-heading-sm--line-height: var(--krds-line-height-base);
+  --text-heading-md: var(--krds-pc-font-size-heading-medium);
+  --text-heading-md--line-height: var(--krds-line-height-base);
+  --text-heading-lg: var(--krds-pc-font-size-heading-large);
+  --text-heading-lg--line-height: var(--krds-line-height-base);
+  --text-heading-xl: var(--krds-pc-font-size-heading-xlarge);
+  --text-heading-xl--line-height: var(--krds-line-height-base);
+
+  /* 표제 — 36 / 44 / 60 */
+  --text-display-sm: var(--krds-pc-font-size-display-small);
+  --text-display-sm--line-height: var(--krds-line-height-base);
+  --text-display-md: var(--krds-pc-font-size-display-medium);
+  --text-display-md--line-height: var(--krds-line-height-base);
+  --text-display-lg: var(--krds-pc-font-size-display-large);
+  --text-display-lg--line-height: var(--krds-line-height-base);
+
+  /* 레이블(폼·버튼·배지) — 13 / 15 / 17 / 19 */
+  --text-label-xs: var(--krds-pc-font-size-label-xsmall);
+  --text-label-xs--line-height: var(--krds-line-height-base);
+  --text-label-sm: var(--krds-pc-font-size-label-small);
+  --text-label-sm--line-height: var(--krds-line-height-base);
+  --text-label-md: var(--krds-pc-font-size-label-medium);
+  --text-label-md--line-height: var(--krds-line-height-base);
+  --text-label-lg: var(--krds-pc-font-size-label-large);
+  --text-label-lg--line-height: var(--krds-line-height-base);
+
+  /* 옛 별칭 — 쓰던 곳이 있어 남긴다. 새 코드는 text-heading-* 를 쓴다. */
+  --text-xl: var(--krds-pc-font-size-heading-small);
+  --text-xl--line-height: var(--krds-line-height-base);
+  --text-2xl: var(--krds-pc-font-size-heading-medium);
+  --text-2xl--line-height: var(--krds-line-height-base);
+  --text-3xl: var(--krds-pc-font-size-heading-large);
+  --text-3xl--line-height: var(--krds-line-height-base);
+  --text-4xl: var(--krds-pc-font-size-heading-xlarge);
+  --text-4xl--line-height: var(--krds-line-height-base);
+
+  /* ── 글꼴 ───────────────────────────────────────────────────────── */
+  --font-sans: var(--krds-font-family-base);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-weight-regular: var(--krds-font-weight-regular);
+  --font-weight-bold: var(--krds-font-weight-bold);
+
+  /* ── 자간 ───────────────────────────────────────────────────────
+   * KRDS 는 0 과 +1px 둘뿐이다. 음수 자간(-0.02em 따위)은 규격에 없다. */
+  --tracking-normal: var(--krds-letter-spacing-none);
+  --tracking-wide: var(--krds-letter-spacing-wide);
+
+  /* ── 둥글기 ─────────────────────────────────────────────────────
+   * KRDS 실측: xsmall 2 · small 4 · medium1·2 6 · medium3·4 8 · large 10 · xlarge 12 */
+  --radius-xs: var(--krds-radius-xsmall1); /* 2 */
+  --radius-sm: var(--krds-radius-small1); /* 4 */
+  --radius-md: var(--krds-radius-medium1); /* 6 — 버튼·입력 */
+  --radius-lg: var(--krds-radius-medium3); /* 8 */
+  --radius-xl: var(--krds-radius-large1); /* 10 */
+  --radius-2xl: var(--krds-radius-xlarge1); /* 12 */
+  --radius-full: var(--krds-radius-max);
+
+  /* ── 테두리 두께 ─────────────────────────────────────────────── */
+  --border-width-regular: var(--krds-light-border-width-static-regular); /* 1 */
+  --border-width-medium: var(--krds-light-border-width-static-medium); /* 2 */
+
+  /* ── 색 ─────────────────────────────────────────────────────────
+   * KRDS 는 의미색을 **축 13개 × 색상 8개**로 가른다(라이트만 186개).
+   * 예전에는 이 중 text 축 몇 개만 이어 놓아서 `bg-primary` 가 「글자색」을 배경으로 칠했다.
+   *
+   * 축마다 쓰임이 다르다.
+   *   text     글자·아이콘        surface  넓은 면(구획 배경)
+   *   border   테두리·구분선      element  꽉 찬 작은 면(배지·점·막대)
+   *
+   * 색상마다 네 벌을 준다 — `text-primary` · `bg-primary-surface` · `border-primary-line` · `bg-primary-solid`.
+   * 팔레트 원색(--krds-color-light-*)이 아니라 **의미 토큰**(--krds-light-color-*)에 잇는다.
+   * 원색을 직접 쓰면 「이 색이 무엇을 뜻하는지」가 사라지고 킷이 팔레트를 바꿀 때 따라가지 못한다. */
+
+  /* 중립 — 글자 */
+  --color-fg: var(--krds-light-color-text-basic);
+  --color-fg-bolder: var(--krds-light-color-text-bolder);
+  --color-fg-subtle: var(--krds-light-color-text-subtle);
+  --color-fg-disabled: var(--krds-light-color-text-disabled);
+  --color-fg-inverse: var(--krds-light-color-text-basic-inverse);
+
+  /* 중립 — 바탕 */
+  --color-bg: var(--krds-light-color-background-white);
+  --color-bg-subtle: var(--krds-light-color-background-gray-subtler);
+  --color-bg-muted: var(--krds-light-color-background-gray-subtle);
+  --color-bg-inverse: var(--krds-light-color-background-inverse);
+  --color-bg-dim: var(--krds-light-color-background-dim);
+
+  /* 중립 — 면. 「본문이 초라하다」를 푸는 축이다. 바탕과 달리 구획에 깊이를 준다. */
+  --color-surface: var(--krds-light-color-surface-white);
+  --color-surface-subtle: var(--krds-light-color-surface-gray-subtle);
+  --color-surface-subtler: var(--krds-light-color-surface-gray-subtler);
+  --color-surface-inverse: var(--krds-light-color-surface-inverse);
+  --color-surface-disabled: var(--krds-light-color-surface-disabled);
+
+  /* 중립 — 선 */
+  --color-line: var(--krds-light-color-border-gray-light);
+  --color-line-strong: var(--krds-light-color-border-gray);
+  --color-line-darker: var(--krds-light-color-border-gray-darker);
+  --color-divider: var(--krds-light-color-divider-gray);
+
+  /* 주색 */
+  --color-primary: var(--krds-light-color-text-primary);
+  --color-primary-surface: var(--krds-light-color-surface-primary-subtler);
+  --color-primary-line: var(--krds-light-color-border-primary);
+  --color-primary-solid: var(--krds-light-color-element-primary);
+
+  --color-secondary: var(--krds-light-color-text-secondary);
+  --color-secondary-surface: var(--krds-light-color-surface-secondary-subtler);
+  --color-secondary-line: var(--krds-light-color-border-secondary);
+  --color-secondary-solid: var(--krds-light-color-element-secondary);
+
+  --color-point: var(--krds-light-color-text-point);
+  --color-point-surface: var(--krds-light-color-surface-point-subtler);
+  --color-point-line: var(--krds-light-color-border-point);
+  --color-point-solid: var(--krds-light-color-element-point);
+
+  /* 상태색 */
+  --color-danger: var(--krds-light-color-text-danger);
+  --color-danger-surface: var(--krds-light-color-surface-danger-subtler);
+  --color-danger-line: var(--krds-light-color-border-danger);
+  --color-danger-solid: var(--krds-light-color-element-danger);
+
+  --color-warning: var(--krds-light-color-text-warning);
+  --color-warning-surface: var(--krds-light-color-surface-warning-subtler);
+  --color-warning-line: var(--krds-light-color-border-warning);
+  --color-warning-solid: var(--krds-light-color-element-warning);
+
+  --color-success: var(--krds-light-color-text-success);
+  --color-success-surface: var(--krds-light-color-surface-success-subtler);
+  --color-success-line: var(--krds-light-color-border-success);
+  --color-success-solid: var(--krds-light-color-element-success);
+
+  --color-information: var(--krds-light-color-text-information);
+  --color-information-surface: var(--krds-light-color-surface-information-subtler);
+  --color-information-line: var(--krds-light-color-border-information);
+  --color-information-solid: var(--krds-light-color-element-information);
+
+  /* 링크 */
+  --color-link: var(--krds-light-color-link-default);
+  --color-link-hover: var(--krds-light-color-link-hover);
+  --color-link-visited: var(--krds-light-color-link-visited);
+}
+
+/*
+ * ── 모바일 눈금 ────────────────────────────────────────────────────
+ * 한때 「킷이 미디어쿼리로 알아서 바꾼다」고 적어 두었는데 **사실이 아니었다.**
+ * 킷은 `--krds-pc-font-size-*` 를 재정의하지 않고, 컴포넌트마다 `@media` 안에서
+ * `--krds-mobile-font-size-*` 를 따로 지정한다. 그래서 우리 유틸리티는 모바일에서 그대로 남았다.
+ *
+ * 실제로 줄어드는 것은 **heading-medium 이상과 display 뿐**이다 —
+ * body·label 은 PC 와 모바일이 같은 값이라 손댈 필요가 없다.
+ * 분기점 767px 은 킷이 쓰는 값 그대로다.
+ */
+@media (max-width: 767px) {
+  :root {
+    --text-heading-md: var(--krds-mobile-font-size-heading-medium); /* 24 → 22 */
+    --text-heading-lg: var(--krds-mobile-font-size-heading-large); /* 32 → 24 */
+    --text-heading-xl: var(--krds-mobile-font-size-heading-xlarge); /* 40 → 28 */
+    --text-display-sm: var(--krds-mobile-font-size-display-small); /* 36 → 28 */
+    --text-display-md: var(--krds-mobile-font-size-display-medium); /* 44 → 32 */
+    --text-display-lg: var(--krds-mobile-font-size-display-large); /* 60 → 44 */
+
+    --text-2xl: var(--krds-mobile-font-size-heading-medium);
+    --text-3xl: var(--krds-mobile-font-size-heading-large);
+    --text-4xl: var(--krds-mobile-font-size-heading-xlarge);
+  }
+}
+
+/*
+ * ── 선명한 화면 모드 ───────────────────────────────────────────────
+ * 킷은 고대비를 의미 토큰 교체로 하지 않고 `[data-krds-mode=high-contrast] .form-group` 처럼
+ * **컴포넌트별 규칙 수백 개**로 건다(킷 안의 `[data-krds-mode=high-contrast] :root` 는
+ * `:root` 가 자기 자손일 수 없어 아무 데도 맞지 않는다 — 킷 자체의 결함이다).
+ *
+ * 그래서 킷 컴포넌트는 알아서 바뀌지만 **우리가 유틸리티로 그린 부분은 밝은 색 그대로 남는다.**
+ * 아래 블록이 보충 층 토큰을 직접 갈아 끼워 그것을 맞춘다.
+ * 이름이 1:1 로 대응한다 — `--krds-light-color-X` ↔ `--krds-high-contrast-color-X`.
+ *
+ * **위 @theme 에 색을 더하면 여기에도 짝을 넣어야 한다.** 안 넣으면 그 색만 고대비에서 안 바뀐다.
+ */
+[data-krds-mode='high-contrast'] {
+  --color-fg: var(--krds-high-contrast-color-text-basic);
+  --color-fg-bolder: var(--krds-high-contrast-color-text-bolder);
+  --color-fg-subtle: var(--krds-high-contrast-color-text-subtle);
+  --color-fg-disabled: var(--krds-high-contrast-color-text-disabled);
+  --color-fg-inverse: var(--krds-high-contrast-color-text-basic-inverse);
+
+  --color-bg: var(--krds-high-contrast-color-background-white);
+  --color-bg-subtle: var(--krds-high-contrast-color-background-gray-subtler);
+  --color-bg-muted: var(--krds-high-contrast-color-background-gray-subtle);
+  --color-bg-inverse: var(--krds-high-contrast-color-background-inverse);
+  --color-bg-dim: var(--krds-high-contrast-color-background-dim);
+
+  --color-surface: var(--krds-high-contrast-color-surface-white);
+  --color-surface-subtle: var(--krds-high-contrast-color-surface-gray-subtle);
+  --color-surface-subtler: var(--krds-high-contrast-color-surface-gray-subtler);
+  --color-surface-inverse: var(--krds-high-contrast-color-surface-inverse);
+  --color-surface-disabled: var(--krds-high-contrast-color-surface-disabled);
+
+  --color-line: var(--krds-high-contrast-color-border-gray-light);
+  --color-line-strong: var(--krds-high-contrast-color-border-gray);
+  --color-line-darker: var(--krds-high-contrast-color-border-gray-darker);
+  --color-divider: var(--krds-high-contrast-color-divider-gray);
+
+  --color-primary: var(--krds-high-contrast-color-text-primary);
+  --color-primary-surface: var(--krds-high-contrast-color-surface-primary-subtler);
+  --color-primary-line: var(--krds-high-contrast-color-border-primary);
+  --color-primary-solid: var(--krds-high-contrast-color-element-primary);
+
+  --color-secondary: var(--krds-high-contrast-color-text-secondary);
+  --color-secondary-surface: var(--krds-high-contrast-color-surface-secondary-subtler);
+  --color-secondary-line: var(--krds-high-contrast-color-border-secondary);
+  --color-secondary-solid: var(--krds-high-contrast-color-element-secondary);
+
+  --color-point: var(--krds-high-contrast-color-text-point);
+  --color-point-surface: var(--krds-high-contrast-color-surface-point-subtler);
+  --color-point-line: var(--krds-high-contrast-color-border-point);
+  --color-point-solid: var(--krds-high-contrast-color-element-point);
+
+  --color-danger: var(--krds-high-contrast-color-text-danger);
+  --color-danger-surface: var(--krds-high-contrast-color-surface-danger-subtler);
+  --color-danger-line: var(--krds-high-contrast-color-border-danger);
+  --color-danger-solid: var(--krds-high-contrast-color-element-danger);
+
+  --color-warning: var(--krds-high-contrast-color-text-warning);
+  --color-warning-surface: var(--krds-high-contrast-color-surface-warning-subtler);
+  --color-warning-line: var(--krds-high-contrast-color-border-warning);
+  --color-warning-solid: var(--krds-high-contrast-color-element-warning);
+
+  --color-success: var(--krds-high-contrast-color-text-success);
+  --color-success-surface: var(--krds-high-contrast-color-surface-success-subtler);
+  --color-success-line: var(--krds-high-contrast-color-border-success);
+  --color-success-solid: var(--krds-high-contrast-color-element-success);
+
+  --color-information: var(--krds-high-contrast-color-text-information);
+  --color-information-surface: var(--krds-high-contrast-color-surface-information-subtler);
+  --color-information-line: var(--krds-high-contrast-color-border-information);
+  --color-information-solid: var(--krds-high-contrast-color-element-information);
+
+  --color-link: var(--krds-high-contrast-color-link-default);
+  --color-link-hover: var(--krds-high-contrast-color-link-hover);
+  --color-link-visited: var(--krds-high-contrast-color-link-visited);
+}

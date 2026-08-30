@@ -1,0 +1,57 @@
+{
+  "name": "moru-krds-react",
+  "version": "0.1.0",
+  "description": "React components built on the CSS of KRDS, the Korean government design system",
+  "license": "MIT",
+  "author": "mhb8436",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles/krds-tailwind.css": "./styles/krds-tailwind.css",
+    "./package.json": "./package.json",
+    "./*": "./dist/*"
+  },
+  "files": [
+    "dist",
+    "src",
+    "styles",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "krds",
+    "react",
+    "design-system",
+    "korea",
+    "government",
+    "accessibility",
+    "wcag",
+    "admin",
+    "backoffice"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "build": "tsup && npm run build:types && node scripts/fix-esm-imports.mjs",
+    "build:types": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mhb8436/moru-krds-react.git"
+  },
+  "types": "./dist/index.d.ts"
+}
