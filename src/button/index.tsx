@@ -95,7 +95,12 @@ export function Button(props: ButtonProps | IconButtonProps) {
       ) : (
         <>
           {iconPosition === 'start' && iconNode}
-          {children}
+          {/*
+            * `link` 변형의 밑줄은 안쪽 `.underline` span 에 걸린다 — 킷 규칙이 거기에 있고, `LinkButton` 은
+            * 늘 자식을 그렇게 감싸 왔다. `Button` 은 감싸지 않아서 `variant="link"` 가 링크 클래스만 붙고
+            * 밑줄은 없는 단추를 만들었다. 같은 변형 이름이 <a> 에서와 <button> 에서 다른 것을 뜻한 셈이다.
+            */}
+          {variant === 'link' ? <span className="underline">{children}</span> : children}
           {iconPosition === 'end' && iconNode}
         </>
       )}
