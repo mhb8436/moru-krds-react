@@ -347,6 +347,28 @@ export function MainMenu({
     return () => document.removeEventListener('mousedown', handleDown);
   }, [openIndex, close]);
 
+  /**
+   * 고르면 메뉴가 닫힌다.
+   *
+   * 킷의 JS 는 바깥 누름과 Esc 로만 닫는다. 그것으로 충분했던 이유는 링크가 모두 전체 새로고침이라
+   * 브라우저가 나가는 길에 메뉴를 통째로 버렸기 때문이다. 클라이언트 라우터는 그러지 않는다 — 방금 연
+   * 화면 위에 패널이 그대로 떠서 아래의 좌측 메뉴를 덮는다.
+   *
+   * `a[href]` 만 센다. 1단계 여닫이는 버튼이므로 여는 동작이 고르는 동작으로 오해되지 않는다.
+   */
+  useEffect(() => {
+    if (openIndex === null) return;
+    const nav = navRef.current;
+    if (!nav) return;
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const link = target?.closest?.('a[href]');
+      if (link && nav.contains(link)) close();
+    };
+    nav.addEventListener('click', handleClick);
+    return () => nav.removeEventListener('click', handleClick);
+  }, [openIndex, close]);
+
   // Esc — 펼쳐진 드롭다운을 전부 접고 **그 1뎁스 메뉴로 초점을 되돌린다**(규격).
   useEffect(() => {
     if (openIndex === null) return;
