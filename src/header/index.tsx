@@ -385,10 +385,23 @@ export function HeaderLogo({
   ...rest
 }: HeaderLogoProps) {
   const Heading = heading;
+  /**
+   * 기관 로고는 킷의 배경 이미지가 아니라 `<img>` 로 그린다.
+   *
+   * 킷은 로고 자리를 `13.7rem x 4.8rem` 으로 못 박고 자기 로고를 `background-size: contain` 으로 깐다.
+   * KRDS 마크는 거의 정사각형이라 그 상자가 맞지만, 기관 워드마크는 대개 가로로 길다(흔히 360x56).
+   * 그러면 가로에 맞춰 들어가면서 **48px 상자 안에서 21px** 로 남는다 — 자리는 비어 있는데 로고만 작아
+   * 보이는 이유다. 배경 이미지로는 고칠 수 없다. 배경은 제 비율에 맞춰 상자를 늘리지 못하기 때문이다.
+   *
+   * `<img>` 는 할 수 있다. 가로·세로를 모두 auto 로 두고 각각 상한만 주면 브라우저가 상자 안에 넣으면서
+   * 비율을 지킨다. `src` 가 없으면 예전과 똑같이 킷 로고가 그려진다.
+   */
+  const image = !!src && !wordmark;
   // 글자 로고는 킷의 고정 너비에 갇히면 잘린다. 아이디 선택자를 이기려면 인라인이어야 한다.
-  const headingStyle = wordmark ? { width: 'auto' } : undefined;
+  const headingStyle = wordmark || image ? { width: 'auto' } : undefined;
   const linkStyle = {
-    ...(src ? { backgroundImage: `url("${src}")` } : null),
+    ...(image ? { backgroundImage: 'none', width: 'auto' } : null),
+    ...(src && !image ? { backgroundImage: `url("${src}")` } : null),
     ...(wordmark && !src ? { backgroundImage: 'none' } : null),
     ...style,
   };
@@ -402,7 +415,33 @@ export function HeaderLogo({
         aria-label={wordmark ? name : undefined}
         {...rest}
       >
-        {wordmark ?? <span className="sr-only">{name}</span>}
+        {wordmark ?? (
+          <>
+            {image && (
+              /*
+               * 너비 상한이 `min(380px, 40vw)` 인 이유: 좁은 화면의 머리말에는 동작 단추 넷이 함께 있어
+               * (390px 화면에서 약 215px), 자리 높이만 보고 키운 로고가 206px 를 차지하면 단추가 줄에서
+               * 밀려나 문서 전체가 가로로 스크롤된다. px 쪽을 rem 이 아니라 px 로 적은 것도 일부러다 —
+               * 킷은 루트 글꼴을 10px 로 잡으므로 rem 값은 그러지 않는 사용처에서 다른 크기가 된다.
+               *
+               * alt="" — 이름은 옆의 sr-only 글자가 이미 읽어 준다. 로고가 기관 이름을 두 번 말하면
+               * 낭독기 사용자가 지적하는 바로 그 상태가 된다.
+               */
+              <img
+                src={src}
+                alt=""
+                style={{
+                  display: 'block',
+                  width: 'auto',
+                  height: 'auto',
+                  maxWidth: 'min(380px, 40vw)',
+                  maxHeight: '100%',
+                }}
+              />
+            )}
+            <span className="sr-only">{name}</span>
+          </>
+        )}
       </UiLink>
     </Heading>
   );
