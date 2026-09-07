@@ -192,9 +192,12 @@ export function AccordionItem({
           {title}
         </button>
       </Heading>
-      {/* `collapse` 는 킷 CSS 에 규칙이 없다. 킷 마크업과 맞추려고 그대로 둔다.
-          닫힘/열림은 `.accordion-item.active` 가 이 요소의 max-height·visibility 를 바꿔 만든다. */}
-      <div id={panelId} className="accordion-collapse collapse" role="region" aria-labelledby={headerId}>
+      {/* 킷 마크업에는 맨 `collapse` 클래스가 함께 붙지만 여기서는 뺀다. Tailwind 가 같은 이름으로
+          `.collapse { visibility: collapse !important }` 를 내보내고, 그것이 킷의
+          `.accordion-item.active .accordion-collapse { visibility: visible }` 를 이겨 모든 패널이 닫힌 채로
+          남는다. 킷 CSS 에는 `collapse` 자체에 대한 규칙이 없고, 열림·닫힘은 `.accordion-item.active` 가
+          이 요소의 max-height 와 visibility 를 바꾸어 만든다. */}
+      <div id={panelId} className="accordion-collapse" role="region" aria-labelledby={headerId}>
         <div className={cx('accordion-body', bodyClassName)}>{children}</div>
       </div>
     </div>

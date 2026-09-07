@@ -38,6 +38,7 @@ export type TableWrapProps = ComponentPropsWithRef<'div'> & {
 };
 
 export function TableWrap({ mobScroll = true, scroll, className, children, ...rest }: TableWrapProps) {
+  const scrollable = mobScroll || scroll;
   return (
     <div
       className={cx(
@@ -49,6 +50,11 @@ export function TableWrap({ mobScroll = true, scroll, className, children, ...re
         mobScroll && 'overflow-x-auto',
         className,
       )}
+      // 스크롤되는 영역은 키보드로 닿을 수 있어야 한다. 그러지 않으면 포인터를 못 쓰는 사람은 가장자리
+      // 밖으로 나간 열을 볼 방법이 없다(axe: scrollable-region-focusable, WCAG 2.1.1). 실제로 넘칠 만큼
+      // 넓은 표에서만 드러나기 때문에 넘치는 표가 하나 나올 때까지 살아남아 있었다.
+      // role="region" 은 이름을 요구하고, 그 이름으로 가장 마땅한 것이 caption 이라 Table 이 넘겨준다.
+      {...(scrollable ? { tabIndex: 0, role: 'region' } : null)}
       {...rest}
     >
       {children}
@@ -92,7 +98,9 @@ export function Table({
   }
 
   return (
-    <TableWrap mobScroll={mobScroll} scroll={scroll} className={wrapClassName} {...wrapProps}>
+    <TableWrap mobScroll={mobScroll} scroll={scroll} className={wrapClassName}
+      aria-label={typeof caption === 'string' ? caption : undefined}
+      {...wrapProps}>
       {/* 가로로 스크롤되는 표는 열 폭을 내용에 맞춘다 — 킷이 `table{table-layout:fixed}` 를 전역으로 못 박아
           폭을 안 주면 열이 전부 같은 너비가 되고, `whitespace-nowrap` 인 칸(날짜·조작 단추)이 잘리지 않고
           **옆 칸 위로 흘러넘쳐** 글자가 겹친다. `ui/data-table` 과 같은 판단이다.

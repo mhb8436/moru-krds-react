@@ -63,11 +63,14 @@ export function Button(props: ButtonProps | IconButtonProps) {
     className,
     children,
     type = 'button',
+    // 둘 다 이 부품의 것이지 요소의 것이 아니다. `rest` 에 남겨 두면 그대로 <button> 에 펴 붙어,
+    // React 가 `iconOnly`(낙타 표기)를 두고 경고하고 `label` 은 아무 뜻도 없는 속성으로 조용히 찍힌다.
+    iconOnly: iconOnlyProp,
+    label,
     ...rest
   } = props as ButtonProps & Partial<IconButtonProps>;
 
-  const iconOnly = 'iconOnly' in props && props.iconOnly === true;
-  const label = 'label' in props ? props.label : undefined;
+  const iconOnly = iconOnlyProp === true;
 
   const cls = cx(
     'krds-btn',
